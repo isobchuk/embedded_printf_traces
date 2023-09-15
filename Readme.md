@@ -7,6 +7,7 @@
 
 - **5** times faster in average than std::snprintf() nano (with --specs=nano.specs for the strings with 1-5 parameters for all specifiers)
 - **20** times faster for data buffers
+- 
 It was achieved because of moving string literals to compile time area and compile-time calculations of the specifier properties(type, position, et cetera).
 
 ## Supported specifiers
