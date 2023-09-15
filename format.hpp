@@ -82,7 +82,7 @@ namespace wrappers {
 /**
  * @brief Struct that saves a string in array inside constexpr object
  */
-template <const unsigned N> struct Wrap {
+template <const size_t N> struct Wrap {
   static constexpr auto size = N; // Size of the array
   char elems[N];                  // Array that contains string
 
@@ -92,7 +92,7 @@ template <const unsigned N> struct Wrap {
    * @param s Reference to an array (usually just const char[])
    */
   consteval Wrap(const char (&s)[N]) {
-    unsigned i = 0;
+    size_t i = 0;
     while (i < N) {
       elems[i] = s[i];
       i++;
@@ -108,7 +108,7 @@ template <const unsigned N> struct Wrap {
    */
   template <typename S> consteval auto operator+(const S s) const {
     char str[size - 1 + S::size];
-    unsigned i = 0;
+    size_t i = 0;
     while (i < (size - 1)) {
       str[i] = elems[i];
       i++;
@@ -122,7 +122,7 @@ template <const unsigned N> struct Wrap {
   }
 };
 // Deduction guide for the Wrap
-template <const unsigned N> Wrap(char const (&)[N]) -> Wrap<N>;
+template <const size_t N> Wrap(char const (&)[N]) -> Wrap<N>;
 
 /**
  * @brief Type that transform array from Wrap to the type property
@@ -157,10 +157,10 @@ template <const wrappers::Wrap str> inline constexpr auto string = wrappers::Str
  *
  */
 struct DataBuffer {
-  const char *data;       // Pointer to the data
-  const unsigned &length; // Length of the buffer
+  const char *data;     // Pointer to the data
+  const size_t &length; // Length of the buffer
 
-  DataBuffer(const char *d, const unsigned &l) : data(d), length(l) {}
+  DataBuffer(const char *d, const size_t &l) : data(d), length(l) {}
 };
 
 /**
@@ -289,7 +289,7 @@ template <put Puts> class Format {
      * @param arg     Current argument
      * @return        Length of the result of the format
      */
-    template <typename W> static unsigned formatArg(char *buffer, Type arg, const W);
+    template <typename W> static size_t formatArg(char *buffer, Type arg, const W);
   };
 
   // Overload for the signed decimals
@@ -297,8 +297,8 @@ template <put Puts> class Format {
     static constexpr auto valid = std::is_signed_v<Type> && std::is_integral_v<Type>;
     static constexpr auto length = (3 * sizeof(Type)) - (sizeof(Type) / 2) + 1;
     static_assert(valid, "ERROR: The '%d' specifier supports only signed integrals!");
-    template <typename W> static unsigned formatArg(char *buffer, Type arg, const W) {
-      unsigned num = 0;
+    template <typename W> static size_t formatArg(char *buffer, Type arg, const W) {
+      size_t num = 0;
       auto uArg = (arg < 0) ? -arg : arg;
       do {
         const unsigned char val = static_cast<unsigned char>(uArg % 10);
@@ -316,7 +316,7 @@ template <put Puts> class Format {
       }
 
       char swap;
-      for (unsigned i = 0; i < num / 2; i++) {
+      for (size_t i = 0; i < num / 2; i++) {
         swap = buffer[i];
         buffer[i] = buffer[num - i - 1];
         buffer[num - i - 1] = swap;
@@ -331,8 +331,8 @@ template <put Puts> class Format {
     static constexpr auto valid = std::is_unsigned_v<Type> && std::is_integral_v<Type>;
     static constexpr auto length = (3 * sizeof(Type)) - (sizeof(Type) / 2);
     static_assert(valid, "ERROR: The '%u' specifier supports only unsigned integrals!");
-    template <typename W> static unsigned formatArg(char *buffer, Type arg, const W) {
-      unsigned num = 0;
+    template <typename W> static size_t formatArg(char *buffer, Type arg, const W) {
+      size_t num = 0;
       do {
         const unsigned char val = static_cast<unsigned char>(arg % 10);
         buffer[num++] = val + '0';
@@ -345,7 +345,7 @@ template <put Puts> class Format {
       }
 
       char swap;
-      for (unsigned i = 0; i < num / 2; i++) {
+      for (size_t i = 0; i < num / 2; i++) {
         swap = buffer[i];
         buffer[i] = buffer[num - i - 1];
         buffer[num - i - 1] = swap;
@@ -360,10 +360,10 @@ template <put Puts> class Format {
     static constexpr auto valid = std::is_unsigned_v<Type> && std::is_integral_v<Type>;
     static constexpr auto length = 2 * sizeof(Type) + 2;
     static_assert(valid, "ERROR: The '%X' specifier supports only unsigned integrals!");
-    template <typename W> static unsigned formatArg(char *buffer, Type arg, const W) {
+    template <typename W> static size_t formatArg(char *buffer, Type arg, const W) {
       buffer[0] = '0';
       buffer[1] = 'x';
-      for (unsigned i = 2; i < length; i++) {
+      for (size_t i = 2; i < length; i++) {
         const unsigned char val = (arg >> ((8 * sizeof(Type)) - ((i - 1) * 4))) & 0xF;
         buffer[i] = (val < 0xA) ? val + '0' : val + ('A' - 0xA);
       }
@@ -376,7 +376,7 @@ template <put Puts> class Format {
     static constexpr auto valid = std::is_same_v<char, std::remove_cv_t<Type>>;
     static constexpr auto length = sizeof(char);
     static_assert(valid, "ERROR: The '%c' specifier supports only (volatile/const) char)!");
-    template <typename W> static unsigned formatArg(char *buffer, Type arg, const W) {
+    template <typename W> static size_t formatArg(char *buffer, Type arg, const W) {
       buffer[0] = arg;
       return length;
     }
@@ -387,8 +387,8 @@ template <put Puts> class Format {
     static constexpr auto valid = is_string_v<Type>;
     static constexpr auto length = sizeof(Type::string) - 1;
     static_assert(valid, "ERROR: The '%s' specifier supports only String!");
-    template <typename W> static unsigned formatArg(char *buffer, Type, const W) {
-      for (unsigned i = 0; i < length; i++) {
+    template <typename W> static size_t formatArg(char *buffer, Type, const W) {
+      for (size_t i = 0; i < length; i++) {
         buffer[i] = Type::string[i];
       }
       return length;
@@ -400,11 +400,11 @@ template <put Puts> class Format {
     static constexpr auto valid = std::is_pointer_v<Type>;
     static constexpr auto length = 2 * sizeof(void *) + 2;
     static_assert(valid, "ERROR: The '%p' specifier supports only pointers!");
-    template <typename W> static unsigned formatArg(char *buffer, Type arg, const W) {
+    template <typename W> static size_t formatArg(char *buffer, Type arg, const W) {
       buffer[0] = '0';
       buffer[1] = 'x';
       const size_t uArg = reinterpret_cast<size_t>(arg);
-      for (unsigned i = 2; i < length; i++) {
+      for (size_t i = 2; i < length; i++) {
         const unsigned char val = (uArg >> ((8 * sizeof(void *)) - ((i - 1) * 4))) & 0xF;
         buffer[i] = (val < 0xA) ? val + '0' : val + ('A' - 0xA);
       }
@@ -414,10 +414,10 @@ template <put Puts> class Format {
 
   // Overload for the time (considered as time from launch)
   template <typename Type> struct SpecCheck<Specifier::Time, Type> {
-    static constexpr auto valid = std::is_unsigned_v<Type> && std::is_integral_v<Type> && (sizeof(Type) >= sizeof(unsigned long));
+    static constexpr auto valid = std::is_unsigned_v<Type> && std::is_integral_v<Type> && (sizeof(Type) >= sizeof(size_t));
     static constexpr auto length = (3 * sizeof(Type)) - (sizeof(Type) / 2) + 4;
     static_assert(valid, "ERROR: The '%t' specifier supports only unsigned integrals with size >= unsigned long!");
-    template <typename W> static unsigned formatArg(char *buffer, Type arg, const W) {
+    template <typename W> static size_t formatArg(char *buffer, Type arg, const W) {
       auto num = SpecCheck<Specifier::UnsignedDecimalInteger, Type>::formatArg(buffer, arg / 1000, Width<0U>{});
       buffer[num++] = '.';
       num += SpecCheck<Specifier::UnsignedDecimalInteger, Type>::formatArg(&buffer[num], arg % 1000, Width<3U>{});
@@ -430,11 +430,11 @@ template <put Puts> class Format {
     static constexpr auto valid = std::is_convertible_v<Type, bool>;
     static constexpr auto length = sizeof("FALSE");
     static_assert(valid, "ERROR: The '%b' specifier supports only types that can be convertible to bool!");
-    template <typename W> static unsigned formatArg(char *buffer, Type arg, const W) {
+    template <typename W> static size_t formatArg(char *buffer, Type arg, const W) {
       const bool cond = (arg) ? 1 : 0;
       const auto len = (cond ? sizeof("TRUE") : sizeof("FALSE")) - 1;
       static constexpr char const *value[] = {{"FALSE"}, {"TRUE"}};
-      for (unsigned i = 0; i < len; i++) {
+      for (size_t i = 0; i < len; i++) {
         buffer[i] = value[cond][i];
       }
       return len;
@@ -442,7 +442,7 @@ template <put Puts> class Format {
   };
 
   // Check provided types according to the specifiers in the string, returns max possible length
-  template <const auto table, typename First, typename... Rest> static consteval unsigned CheckSpecsTypes(const First, const Rest...) {
+  template <const auto table, typename First, typename... Rest> static consteval size_t CheckSpecsTypes(const First, const Rest...) {
     constexpr auto tableIndex = table.size - (sizeof...(Rest) + 1);
     if constexpr (sizeof...(Rest)) {
       return CheckSpecsTypes<table>(Rest{}...) + SpecCheck<table.data[tableIndex].specifier, First>::length;
@@ -474,7 +474,7 @@ public:
    */
   template <typename S, typename... Args>
   requires const_string<S>
-  inline unsigned printf(const S str, const Args... args) const {
+  inline size_t printf(const S str, const Args... args) const {
     // General check fot the specifiers quantity the same as the quantity of arguments
     static constexpr auto specifiersQuantity = SpecifierQuantity(str);
     static_assert(sizeof...(args) == specifiersQuantity,
@@ -499,8 +499,8 @@ public:
     char buffer[length];
 
     // Parsing string
-    unsigned counterSource = 0;
-    unsigned counterResult = 0;
+    size_t counterSource = 0;
+    size_t counterResult = 0;
     auto parse = [&]<typename First, typename... Rest>(auto &&parse, const First first, const Rest... rest) -> void {
       constexpr auto tableIndex = table.size - (sizeof...(Rest) + 1);
       while (counterSource < table.data[tableIndex].position) {
@@ -532,7 +532,7 @@ public:
    */
   template <typename S>
   requires const_string<S>
-  inline unsigned printf(const S) const {
+  inline size_t printf(const S) const {
     puts.puts(S::string);
     return sizeof(S::string);
   }
@@ -551,11 +551,14 @@ public:
    */
   template <typename S, typename... Args>
   requires const_string<S>
-  inline unsigned printf(const S str, const DataBuffer &dataBuffer, const Args... args) const {
+  inline size_t printf(const S str, const DataBuffer &dataBuffer, const Args... args) const {
+    if (nullptr == dataBuffer.data) {
+      return 0;
+    }
     const auto len = printf(str, args...);
     char buffer[] = " XX";
     char val = '\0';
-    for (unsigned i = 0; i < dataBuffer.length; i++) {
+    for (size_t i = 0; i < dataBuffer.length; i++) {
       val = dataBuffer.data[i] >> 4;
       buffer[1] = (val < 0xA) ? val + '0' : val + ('A' - 0xA);
       val = dataBuffer.data[i] & 0xF;
@@ -572,7 +575,7 @@ public:
    */
   template <typename S, typename... Args>
   requires const_string<S>
-  inline unsigned println(const S, const Args... args) const {
+  inline size_t println(const S, const Args... args) const {
     constexpr auto res_str = string<S::string> + string<"\r\n">;
     return printf(res_str, args...);
   }
