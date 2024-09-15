@@ -49,8 +49,8 @@ namespace iso::format {
  * @tparam  T The type should be checked
  */
 template <typename T>
-concept put = requires(T &put) {
-  { put.puts(nullptr) };
+concept put = requires(T &put, const char (&buff)[10]) {
+  { put.puts(buff) };
 };
 
 /**
